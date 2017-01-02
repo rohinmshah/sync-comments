@@ -50,9 +50,12 @@ class DisqusAPI(API):
 
         if 'noLimit' not in options and 'limit' not in arguments:
             arguments['limit'] = self.limit
-        
-        return requests.get('https://disqus.com/api/3.0/' + endPoint,
-                            arguments)
+
+        url = 'https://disqus.com/api/3.0/' + endPoint
+        result = requests.get(url, arguments)
+        if result.status_code != 200:
+            print result.text
+        return result
 
     # Makes a POST request to the Disqus API with the given parameters.
     # endPoint: A string identifier for the Disqus API function to invoke.
@@ -63,9 +66,12 @@ class DisqusAPI(API):
         # Make a copy of arguments, since we mutate it
         arguments = { k:arguments[k] for k in arguments }
         self.fix_arguments(arguments, options)
-        
-        return requests.post('https://disqus.com/api/3.0/' + endPoint,
-                             arguments)
+
+        url = 'https://disqus.com/api/3.0/' + endPoint
+        result = requests.post(url, arguments)
+        if result.status_code != 200:
+            print result.text
+        return result
 
     # thread: Id of the post to get comments for (as a string).
     # Returns: The result of the request (an HTTPResponse object).
