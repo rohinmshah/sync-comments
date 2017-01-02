@@ -8,7 +8,7 @@ from config import *
 # Copies any new comments from website to Disqus.
 # Note website is not a URL, it is simply an identifier like "Facebook" that is
 # used to extract information out of the Post object.
-def sync_website_comments(post, website, api):
+def sync_website_comments(post, website, api, saveFn):
     if website not in post.other_ids:
         return
 
@@ -21,6 +21,7 @@ def sync_website_comments(post, website, api):
         if comment.id not in copied_comments:
             disqus_id = disqusApi.guarded_make_comment(comment, post.disqus_id, disqus_parent)
             copied_comments[comment.id] = disqus_id
+            saveFn()
 
         # Recurse over the children
         for child in comment_node.children:
@@ -58,12 +59,13 @@ def create_all_posts_data_structure():
     return all_posts
 
 def sync(all_posts):
+    def save():
+        with open(PICKLED_POSTS_FILE, 'w') as f:
+            pickle.dump(all_posts, f)
+        
     for post in all_posts:
-        sync_website_comments(post, EA_FORUM_STRING, eaforumApi)
-        sync_website_comments(post, FACEBOOK_STRING, fbApi)
-
-    with open(PICKLED_POSTS_FILE, 'w') as f:
-        pickle.dump(all_posts, f)
+        sync_website_comments(post, EA_FORUM_STRING, eaforumApi, save)
+        sync_website_comments(post, FACEBOOK_STRING, fbApi, save)
 
 def loop():
     all_posts = create_all_posts_data_structure()
