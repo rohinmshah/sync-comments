@@ -21,6 +21,8 @@ def sync_website_comments(post, website, api):
         if comment.id not in copied_comments:
             disqus_id = disqusApi.guarded_make_comment(comment, post.disqus_id, disqus_parent)
             copied_comments[comment.id] = disqus_id
+            # Let Disqus properly update its database
+            time.sleep(30)
 
         # Recurse over the children
         for child in comment_node.children:
@@ -57,18 +59,21 @@ def create_all_posts_data_structure():
 
     return all_posts
 
+def sync(all_posts):
+    for post in all_posts:
+        sync_website_comments(post, EA_FORUM_STRING, eaforumApi)
+        sync_website_comments(post, FACEBOOK_STRING, fbApi)
+
+    with open(PICKLED_POSTS_FILE, 'w') as f:
+        pickle.dump(all_posts, f)
+
 def loop():
     all_posts = create_all_posts_data_structure()
     counter = 0
     while True:
         counter += 1
         print 'Iteration', counter
-        for post in all_posts:
-            sync_website_comments(post, EA_FORUM_STRING, eaforumApi)
-            sync_website_comments(post, FACEBOOK_STRING, fbApi)
-
-        with open(PICKLED_POSTS_FILE, 'w') as f:
-            pickle.dump(all_posts, f)
+        sync(all_posts)
 
         time.sleep(DELAY)
 
@@ -106,6 +111,8 @@ if __name__ == '__main__':
             print 'Put this in DISQUS_ADMIN_ACCESS_TOKEN in keys.py and restart'
         elif sys.argv[1] == 'go':
             loop()
+        elif sys.argv[1] == 'sync':
+            sync(create_all_posts_data_structure())
         elif sys.argv[1] == 'disqus-ids':
             result = disqusApi.get_post_ids_and_titles()
             print result
