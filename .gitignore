@@ -3,3 +3,4 @@
 keys.py
 post_data.json
 *.pickle
+*.log

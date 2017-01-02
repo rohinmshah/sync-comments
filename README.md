@@ -1,6 +1,6 @@
 # Running the code:
 
-    # python -u copy-comments.py >> comments.log &
+    # python -u copy-comments.py go >> comments.log &
 
 The -u forces python to run in unbuffered mode, so that prints go 
 straight to the comments.log file and aren't buffered.

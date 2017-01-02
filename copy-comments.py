@@ -80,20 +80,21 @@ def usage(name):
     print 'refresh-disqus: Get a new Disqus access code'
 
 def test():
-    r = fbApi.get_comments('10155016702198694_10154766190323694')
+    # r = fbApi.get_comments('10155016702198694_10154766190323694')
     # print r.url
     # print r.text
 
-    # comment = RealComment(EA_FORUM_STRING, "http://effective-altruism.com/ea/154/thoughts_on_the_meta_trap/", '9gu', "http://effective-altruism.com/ea/154/thoughts_on_the_meta_trap/#9gu", 'rohinmshah', True, 'Test comment by owner')
+    # comment = RealComment(EA_FORUM_STRING, "http://effective-altruism.com/ea/154/thoughts_on_the_meta_trap/", '9gu', "http://effective-altruism.com/ea/154/thoughts_on_the_meta_trap/#9gu", 'rohinmshah', False, 'Test comment by owner')
     # r = disqusApi.make_comment(comment, '5397217386')
-    # r = disqusApi.get_comments_on_thread('2967563216')
+    r = disqusApi.approve_comment('3078765040')
+    print r
+    # r = disqusApi.get_comments_on_thread('5397217386')
     # r = disqusApi.get_post_ids_and_titles()
-    #print r.text
     return r
 
 result = 0
 if __name__ == '__main__':
-    if len(sys.argv) > 1:
+    if len(sys.argv) == 2:
         if sys.argv[1] == 'refresh-fb':
             result = fbApi.get_access_token()
             print result
@@ -111,8 +112,10 @@ if __name__ == '__main__':
             result = fbApi.get_posts()
             for post in result:
                 print post
+        elif sys.argv[1] == 'test':
+            result = test()
+            print result
         else:
             usage(sys.argv[0])
     else:
-        result = test()
-        print result
+        usage(sys.argv[0])
