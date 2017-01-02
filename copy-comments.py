@@ -26,7 +26,7 @@ def sync_website_comments(post, website, api):
         for child in comment_node.children:
             loop(child, copied_comments[comment.id])
             
-    root = api.get_comments()
+    root = api.get_comments(thread_id)
     for node in root.children:
         loop(node, None)
 
