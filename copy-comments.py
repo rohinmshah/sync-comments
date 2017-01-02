@@ -21,8 +21,6 @@ def sync_website_comments(post, website, api):
         if comment.id not in copied_comments:
             disqus_id = disqusApi.guarded_make_comment(comment, post.disqus_id, disqus_parent)
             copied_comments[comment.id] = disqus_id
-            # Let Disqus properly update its database
-            time.sleep(30)
 
         # Recurse over the children
         for child in comment_node.children:

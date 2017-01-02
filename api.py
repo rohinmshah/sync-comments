@@ -93,7 +93,7 @@ class DisqusAPI(API):
     # Returns: Stringified HTML for the comment text.
     def create_message(self, comment):
         atag = HTML().a(comment.website, href=comment.url)
-        source = HTML().p('Copied from ' + str(atag), escape=False)
+        source = HTML().p('Synced from ' + str(atag), escape=False)
         return str(source) + comment.content
 
     def guarded_make_comment(self, comment, thread, parent=None):
