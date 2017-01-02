@@ -13,21 +13,22 @@ def sync_website_comments(post, website, api):
         return
 
     copied_comments = post.copied_comments[website]
+    thread_id = post.other_ids[website]
     
     def loop(comment_node, disqus_parent):
         # Handle the current comment
         comment = comment_node.item
         if comment.id not in copied_comments:
-            disqus_id = disqusApi.guarded_make_comment(comment, disqus_parent)
+            disqus_id = disqusApi.guarded_make_comment(comment, thread_id, disqus_parent)
             copied_comments[comment.id] = disqus_id
 
         # Recurse over the children
         for child in comment_node.children:
             loop(child, copied_comments[comment.id])
             
-    root = api.get_comments(post.other_ids[website])
+    root = api.get_comments()
     for node in root.children:
-        loop(node, post.disqus_id)
+        loop(node, None)
 
 # TODO: Currently we depend on the pickled file remaining -- if the pickled file
 # is deleted, then all the comments will be re-copied, causing duplicates.
@@ -80,17 +81,17 @@ def usage(name):
     print 'refresh-disqus: Get a new Disqus access code'
 
 def test():
-    # r = fbApi.get_comments('10155016702198694_10154766190323694')
-    # print r.url
-    # print r.text
-
-    # comment = RealComment(EA_FORUM_STRING, "http://effective-altruism.com/ea/154/thoughts_on_the_meta_trap/", '9gu', "http://effective-altruism.com/ea/154/thoughts_on_the_meta_trap/#9gu", 'rohinmshah', False, 'Test comment by owner')
-    # r = disqusApi.make_comment(comment, '5397217386')
-    r = disqusApi.approve_comment('3078765040')
-    print r
+    # comment = RealComment(EA_FORUM_STRING, "http://effective-altruism.com/ea/154/thoughts_on_the_meta_trap/", '9gu', "http://effective-altruism.com/ea/154/thoughts_on_the_meta_trap/#9gu", 'rohinmshah', True, 'Test comment by owner')
+    # cid = disqusApi.guarded_make_comment(comment, '5397217386')
+    # print cid
+    
+    # comment = RealComment(EA_FORUM_STRING, "http://effective-altruism.com/ea/154/thoughts_on_the_meta_trap/", '9gu', "http://effective-altruism.com/ea/154/thoughts_on_the_meta_trap/#9gu", 'auser', False, 'Test reply by guest')
+    # r = disqusApi.guarded_make_comment(comment, '5397217386', cid)
+    # print r
     # r = disqusApi.get_comments_on_thread('5397217386')
     # r = disqusApi.get_post_ids_and_titles()
-    return r
+    # return r
+    return None
 
 result = 0
 if __name__ == '__main__':

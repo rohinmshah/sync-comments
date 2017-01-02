@@ -90,10 +90,10 @@ class DisqusAPI(API):
         source = HTML().p('Copied from ' + str(atag), escape=False)
         return str(source) + comment.content
 
-    def guarded_make_comment(self, comment, thread):
+    def guarded_make_comment(self, comment, thread, parent=None):
         if '[nocopy]' in comment.content:
             comment.content = '<p><i>Comment hidden by request</i></p>'
-        return self.make_comment(comment, thread)
+        return self.make_comment(comment, thread, parent)
 
     # Adds and approves a comment as a reply to the entity identified by thread.
     # The comment will immediately appear on the website.
@@ -101,16 +101,16 @@ class DisqusAPI(API):
     # thread: The id of the parent comment that this is a reply to, or the id of
     # the blog post if it is a top-level comment. This is a string.
     # Returns: The Disqus ID of the created comment.
-    def make_comment(self, comment, thread):
+    def make_comment(self, comment, thread, parent=None):
         message = self.create_message(comment)
         if comment.is_owner_comment:
             print 'Adding owner comment from', comment.website
-            req = self.add_owner_comment(message, thread)
-            return req
+            req = self.add_owner_comment(message, thread, parent)
+            return req.json()['response']['id']
         else:
             name = comment.username.strip().split()[0]
             print 'Add comment by', name, 'from', comment.website
-            req = self.add_comment(name, message, thread)
+            req = self.add_comment(name, message, thread, parent)
             comment_id = req.json()['response']['id']
             self.approve_comment(comment_id)
             return comment_id
@@ -122,23 +122,27 @@ class DisqusAPI(API):
     # thread: The id of the parent comment that this is a reply to, or the id of
     # the blog post if it is a top-level comment. This is a string.
     # Returns: The result of the request (an HTTPResponse object).
-    def add_comment(self, name, comment, thread):
+    def add_comment(self, name, comment, thread, parent=None):
+        args = {
+            'message': comment,
+            'thread': thread,
+            'author_name': name,
+            'author_email': 'example@disqus.com'
+        }
+        if parent:
+            args['parent'] = parent
         # See https://disqus.com/home/channel/discussdisqus/discussion/channel-discussdisqus/disqus_api_create_post_as_guest/
         # for an explanation of why we use the global key
-        return self.post('posts/create.json',
-                         {
-                             'message': comment,
-                             'thread': thread,
-                             'author_name': name,
-                             'author_email': 'example@disqus.com'
-                         }, ['useGlobal', 'noForum'])
+        return self.post('posts/create.json', args, ['useGlobal', 'noForum'])
 
-    def add_owner_comment(self, comment, thread):
-        return self.post('posts/create.json',
-                         {
-                             'message': comment,
-                             'thread': thread
-                         }, ['access_token', 'noForum'])
+    def add_owner_comment(self, comment, thread, parent=None):
+        args = {
+            'message': comment,
+            'thread': thread
+        }
+        if parent:
+            args['parent'] = parent
+        return self.post('posts/create.json', args, ['access_token', 'noForum'])
 
     # comment_id: The id of the comment to approve, as a string.
     # Returns: The result of the request (an HTTPResponse object).
