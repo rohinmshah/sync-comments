@@ -19,14 +19,14 @@ def sync_website_comments(post, website, api):
         # Handle the current comment
         comment = comment_node.item
         if comment.id not in copied_comments:
-            disqus_id = disqusApi.guarded_make_comment(comment, thread_id, disqus_parent)
+            disqus_id = disqusApi.guarded_make_comment(comment, post.disqus_id, disqus_parent)
             copied_comments[comment.id] = disqus_id
 
         # Recurse over the children
         for child in comment_node.children:
             loop(child, copied_comments[comment.id])
             
-    root = api.get_comments(post.disqus_id)
+    root = api.get_comments(thread_id)
     for node in root.children:
         loop(node, None)
 
