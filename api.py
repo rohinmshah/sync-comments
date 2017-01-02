@@ -289,10 +289,11 @@ class EAForumAPI(API):
             author = unicode(commentDiv.find(class_='comment-author').a.text)
             is_owner = (author == 'rohinmshah')
             contentDiv = commentDiv.find(class_='comment-content')
-            msg = contentDiv.find(class_='md').prettify().strip()
+            msg = unicode(contentDiv.find(class_='md')).strip()
             if msg.startswith(self.DIV_START) and msg.endswith(self.DIV_END):
                 msg = msg[len(self.DIV_START):-len(self.DIV_END)].strip()
-            msg = msg.replace('</p>\n', '</p>').replace('<p>\n', '<p>')
+            msg = msg.replace('<ul>', '<p>').replace('</ul>', '</p>')
+            msg = msg.replace('<li>', '* ').replace('</li>', '')
             return RealComment(EA_FORUM_STRING, url, id, comment_url, author, is_owner, msg)
         except (KeyError, AttributeError, TypeError) as e:
             return FakeComment((url, commentDiv))
