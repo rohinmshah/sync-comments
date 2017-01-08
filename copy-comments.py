@@ -13,7 +13,6 @@ def sync_website_comments(post, website, api, saveFn):
         return
 
     copied_comments = post.copied_comments[website]
-    thread_id = post.other_ids[website]
     
     def loop(comment_node, disqus_parent):
         # Handle the current comment
@@ -26,10 +25,14 @@ def sync_website_comments(post, website, api, saveFn):
         # Recurse over the children
         for child in comment_node.children:
             loop(child, copied_comments[comment.id])
-            
-    root = api.get_comments(thread_id)
-    for node in root.children:
-        loop(node, None)
+    
+    thread_ids = post.other_ids[website]
+    if type(thread_ids) != type([]):
+        thread_ids = [ thread_ids ]
+    for thread_id in thread_ids:
+        root = api.get_comments(thread_id)
+        for node in root.children:
+            loop(node, None)
 
 # TODO: Currently we depend on the pickled file remaining -- if the pickled file
 # is deleted, then all the comments will be re-copied, causing duplicates.
