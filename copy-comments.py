@@ -120,12 +120,11 @@ def test():
 result = 0
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Copy comments from posts to blog.', epilog=usage_str())
-    parser.add_argument('command', nargs=1)
-    parser.add_argument('--debug', action='store_const',
-                        const=True, default=False,
+    parser.add_argument('command', nargs=1,
+                        choices=['sync', 'go', 'refresh-fb', 'refresh-disqus', 'disqus-ids', 'fb-posts', 'test'])
+    parser.add_argument('--debug', action='store_true',
                         help='Run in debug mode, printing all actions that would be taken, but not actually performing them')
-    parser.add_argument('--prefer_user_post_data', action='store_const',
-                        const=True, default=False,
+    parser.add_argument('--prefer_user_post_data', action='store_true',
                         help='When the pickle file and the user post data conflict, use the results from the user post data rather than raising an error.')
     params = parser.parse_args()
     command = params.command[0]
