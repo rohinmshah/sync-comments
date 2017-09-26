@@ -12,12 +12,20 @@ from bs4 import BeautifulSoup
 Request = requests.Request
 
 class API:
-    def __init__(self):
-        pass
+    def __init__(self, debug):
+        self.debug = debug
 
 class DisqusAPI(API):
-    def __init__(self, global_key, app_key, app_secret, forum_name, owner_access_token, admin_access_token, limit):
-        API.__init__(self)
+    def __init__(self,
+                 debug,
+                 global_key=DISQUS_GLOBAL_KEY,
+                 app_key=DISQUS_PUBLIC_KEY,
+                 app_secret=DISQUS_SECRET,
+                 forum_name=DISQUS_FORUM_NAME,
+                 owner_access_token=DISQUS_OWNER_ACCESS_TOKEN,
+                 admin_access_token=DISQUS_ADMIN_ACCESS_TOKEN,
+                 limit=100):
+        API.__init__(self, debug)
         self.global_key = global_key
         self.app_key = app_key
         self.app_secret = app_secret
@@ -37,41 +45,42 @@ class DisqusAPI(API):
             arguments['forum'] = self.forum_name
         if 'access_token' in options:
             arguments['access_token'] = self.admin_access_token
-
-    # Makes a GET request to the Disqus API with the given parameters.
-    # endPoint: A string identifier for the Disqus API function to invoke.
-    # arguments: Query parameters for the endpoint.
-    # options: Various options that customize how the request is made.
-    # Returns: The result of the request (an HTTPResponse object).
-    def get(self, endPoint, arguments={}, options=[]):
-        # Make a copy of arguments, since we mutate it
-        arguments = { k:arguments[k] for k in arguments }
-        self.fix_arguments(arguments, options)
-
         if 'noLimit' not in options and 'limit' not in arguments:
             arguments['limit'] = self.limit
 
-        url = 'https://disqus.com/api/3.0/' + endPoint
-        result = requests.get(url, arguments)
-        if result.status_code != 200:
-            print result.text
-        return result
-
-    # Makes a POST request to the Disqus API with the given parameters.
+    # Makes a request to the Disqus API with the given parameters.
+    # request_type: Either 'get' or 'post', whether to use GET or POST.
     # endPoint: A string identifier for the Disqus API function to invoke.
     # arguments: Query parameters for the endpoint.
     # options: Various options that customize how the request is made.
     # Returns: The result of the request (an HTTPResponse object).
-    def post(self, endPoint, arguments={}, options=[]):
+    def request(self, request_type, endPoint, arguments={}, options=[]):
+        assert request_type in ['get', 'post']
+
         # Make a copy of arguments, since we mutate it
         arguments = { k:arguments[k] for k in arguments }
         self.fix_arguments(arguments, options)
 
         url = 'https://disqus.com/api/3.0/' + endPoint
-        result = requests.post(url, arguments)
+        fn = requests.get if request_type == 'get' else requests.post
+        result = fn(url, arguments)
         if result.status_code != 200:
             print result.text
         return result
+
+    # Makes a GET request to the Disqus API with the given parameters.
+    def get(self, endPoint, arguments={}, options=[]):
+        return self.request('get', endpoint, arguments, options)
+
+    # Makes a POST request to the Disqus API with the given parameters.
+    def post(self, endPoint, arguments={}, options=[]):
+        if self.debug:
+            print 'Squelching POST request in debug mode to Disqus endpoint', endPoint
+            return
+        # We always allow a POST request to not specify a limit.
+        if 'limit' not in arguments and 'noLimit' not in options:
+            options.append('noLimit')
+        return self.request('post', endpoint, arguments, options)
 
     # thread: Id of the post to get comments for (as a string).
     # Returns: The result of the request (an HTTPResponse object).
@@ -103,6 +112,8 @@ class DisqusAPI(API):
 
     # Adds and approves a comment as a reply to the entity identified by thread.
     # The comment will immediately appear on the website.
+    # If debug is true, then the comment is not added to the website and instead
+    # a message is printed saying that the comment would have been added.
     # comment: The comment to post, as a RealComment object.
     # thread: The id of the parent comment that this is a reply to, or the id of
     # the blog post if it is a top-level comment. This is a string.
@@ -111,11 +122,17 @@ class DisqusAPI(API):
         message = self.create_message(comment)
         if comment.is_owner_comment:
             print 'Adding owner comment from', comment.website
+            if self.debug:
+                print 'Not adding owner comment since we are in debug mode'
+                return 0
             req = self.add_owner_comment(message, thread, parent)
             return req.json()['response']['id']
         else:
             name = comment.username.strip().split()[0]
             print 'Add comment by', name, 'from', comment.website
+            if self.debug:
+                print 'Not adding comment since we are in debug mode'
+                return 0
             req = self.add_comment(name, message, thread, parent)
             comment_id = req.json()['response']['id']
             self.approve_comment(comment_id)
@@ -187,15 +204,21 @@ class DisqusAPI(API):
 
 
 class FacebookAPI(API):
-    def __init__(self, app_id, app_secret, user_id, access_token):
-        API.__init__(self)
+    def __init__(self,
+                 debug,
+                 app_id=FB_APP_ID,
+                 app_secret=FB_APP_SECRET,
+                 user_id=FB_OWNER_ID,
+                 access_token=FB_LONG_CODE):
+        API.__init__(self, debug)
         self.app_id = app_id
         self.app_secret = app_secret
         self.user_id = user_id
         self.access_token = access_token
 
-    def request(self, is_get, endpoint, arguments, options):
-        fn = requests.get if is_get else requests.post
+    def request(self, request_type, endpoint, arguments, options):
+        assert request_type in ['get', 'post']
+        fn = requests.get if request_type == 'get' else requests.post
         url = 'https://graph.facebook.com/v2.8/' + endpoint
         arguments = { k:arguments[k] for k in arguments }
         if 'no_access_token' not in options:
@@ -203,10 +226,10 @@ class FacebookAPI(API):
         return fn(url, arguments)
 
     def get(self, endpoint, arguments={}, options=[]):
-        return self.request(True, endpoint, arguments, options)
+        return self.request('get', endpoint, arguments, options)
 
     def post(self, endpoint, arguments={}, options=[]):
-        return self.request(False, endpoint, arguments, options)
+        return self.request('post', endpoint, arguments, options)
 
     def get_posts(self):
         return self.get('me/posts').json()['data']
@@ -219,7 +242,8 @@ class FacebookAPI(API):
     # object_id: The id of a Facebook node that has the comments edge
     # Returns: A list of Facebook comments (as dictionaries)
     def get_one_level_comments(self, object_id):
-        return self.get(object_id + '/comments').json()['data']
+        result = self.get(object_id + '/comments').json()
+        return result['data']
 
     def get_comments(self, post_id):
         top_level = self.get_one_level_comments(post_id)
@@ -249,7 +273,7 @@ class FacebookAPI(API):
         code = re.findall('code=([^#]*)#_=_$', result)[0]
 
         def get_code(response):
-            return parse_qs(response.text)['access_token'][0]
+            return response.json()['access_token']
     
         short_code = get_code(
             requests.get('https://graph.facebook.com/oauth/access_token',
@@ -272,8 +296,8 @@ class FacebookAPI(API):
 class EAForumAPI(API):
     DIV_START = '<div class="md">'
     DIV_END = '</div>'
-    def __init__(self):
-        API.__init__(self)
+    def __init__(self, debug):
+        API.__init__(self, debug)
 
     # url: The url of the EA Forum post that the comment comes from
     # commentDiv: The BeautifulSoup div representing the comment
@@ -324,9 +348,3 @@ class EAForumAPI(API):
 
         # TODO: Do something with unhandled
         return root
-
-disqusApi = DisqusAPI(DISQUS_GLOBAL_KEY, DISQUS_PUBLIC_KEY, DISQUS_SECRET,
-                      DISQUS_FORUM_NAME, DISQUS_OWNER_ACCESS_TOKEN,
-                      DISQUS_ADMIN_ACCESS_TOKEN, 100)
-fbApi = FacebookAPI(FB_APP_ID, FB_APP_SECRET, FB_OWNER_ID, FB_LONG_CODE)
-eaforumApi = EAForumAPI()

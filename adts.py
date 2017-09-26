@@ -56,4 +56,7 @@ class Post:
 
     def __str__(self):
         return 'Post #' + str(self.disqus_id) + ' with comments ' + str(self.copied_comments)
+
+    def has_same_links(self, other):
+        return self.disqus_id == other.disqus_id and self.other_ids == other.other_ids
         
